@@ -1,6 +1,7 @@
 package libdetectcloud
 
 import (
+	"context"
 	"net/http"
 	"runtime"
 	"sync"
@@ -9,89 +10,52 @@ import (
 
 var hc = &http.Client{Timeout: 300 * time.Millisecond}
 
-// Clouds type
-type Clouds struct {
-	AlibabaCloud string
-	Aws          string
-	Azure        string
-	Do           string
-	Gce          string
-	Ost          string
-	Sl           string
-	Vr           string
-	Container    string
-}
-
-// Detect function
 func Detect() string {
 	if runtime.GOOS != "darwin" {
-		var c Clouds
-		var wg sync.WaitGroup
-		wg.Add(9)
-		go func() {
-			defer wg.Done()
-			c.AlibabaCloud = detectAlibabaCloud()
-		}()
-		go func() {
-			defer wg.Done()
-			c.Aws = detectAWS()
-		}()
-		go func() {
-			defer wg.Done()
-			c.Azure = detectAzure()
-		}()
-		go func() {
-			defer wg.Done()
-			c.Do = detectDigitalOcean()
-		}()
-		go func() {
-			defer wg.Done()
-			c.Gce = detectGCE()
-		}()
-		go func() {
-			defer wg.Done()
-			c.Ost = detectOpenStack()
-		}()
-		go func() {
-			defer wg.Done()
-			c.Sl = detectSoftlayer()
-		}()
-		go func() {
-			defer wg.Done()
-			c.Vr = detectVultr()
-		}()
-		go func() {
-			defer wg.Done()
-			c.Container = detectContainer()
-		}()
-		wg.Wait()
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 
-		if c.AlibabaCloud != "" {
-			return c.AlibabaCloud
+		detectFuncs := []func() string{
+			detectAlibabaCloud,
+			detectAWS,
+			detectAzure,
+			detectDigitalOcean,
+			detectGCE,
+			detectOpenStack,
+			detectSoftlayer,
+			detectVultr,
+			detectContainer,
 		}
-		if c.Aws != "" {
-			return c.Aws
+
+		results := make(chan string, len(detectFuncs))
+
+		var wg sync.WaitGroup
+		wg.Add(len(detectFuncs))
+
+		for _, fn := range detectFuncs {
+			go func(f func() string) {
+				defer wg.Done()
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					if result := f(); result != "" {
+						results <- result
+						cancel()
+					}
+				}
+			}(fn)
 		}
-		if c.Azure != "" {
-			return c.Azure
-		}
-		if c.Do != "" {
-			return c.Do
-		}
-		if c.Gce != "" {
-			return c.Gce
-		}
-		if c.Ost != "" {
-			return c.Ost
-		}
-		if c.Sl != "" {
-			return c.Sl
-		}
-		if c.Vr != "" {
-			return c.Vr
-		}
-		if c.Container != "" {
-			return c.Container
+
+		go func() {
+			wg.Wait()
+			close(results)
+		}()
+
+		for result := range results {
+			if result != "" {
+				return result
+			}
 		}
 	}
 	return ""
