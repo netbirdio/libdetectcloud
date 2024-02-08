@@ -5,7 +5,14 @@ import (
 )
 
 func detectAzure() string {
-	resp, err := hc.Get("http://169.254.169.254/metadata/v1/InstanceInfo")
+	req, err := http.NewRequest("GET", "http://169.254.169.254/metadata/instance?api-version=2021-02-01", nil)
+	if err != nil {
+		return ""
+	}
+	req.Header.Set("Metadata", "true")
+
+	resp, err := hc.Do(req)
+
 	if err == nil && resp.StatusCode == http.StatusOK {
 		return "Microsoft Azure"
 	}
