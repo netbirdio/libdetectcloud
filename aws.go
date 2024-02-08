@@ -9,11 +9,11 @@ func detectAWS() string {
 	v2ResultChan := make(chan bool, 1)
 
 	go func() {
-		v1ResultChan <- detectIDMSv1()
+		v1ResultChan <- detectAWSIDMSv1()
 	}()
 
 	go func() {
-		v2ResultChan <- detectIDMSv2()
+		v2ResultChan <- detectAWSIDMSv2()
 	}()
 
 	v1Result, v2Result := <-v1ResultChan, <-v2ResultChan
@@ -24,7 +24,7 @@ func detectAWS() string {
 	return ""
 }
 
-func detectIDMSv1() bool {
+func detectAWSIDMSv1() bool {
 	resp, err := hc.Get("http://169.254.169.254/latest/")
 	if err != nil {
 		return false
@@ -33,7 +33,7 @@ func detectIDMSv1() bool {
 	return resp.StatusCode == http.StatusOK
 }
 
-func detectIDMSv2() bool {
+func detectAWSIDMSv2() bool {
 	req, err := http.NewRequest("PUT", "http://169.254.169.254/latest/api/token", nil)
 	if err != nil {
 		return false
