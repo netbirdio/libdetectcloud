@@ -5,7 +5,7 @@ import (
 )
 
 func detectGCE() string {
-	r, err := http.NewRequest("GET", "http://metadata.google.internal/computeMetadata/v1/instance/tags", nil)
+	r, err := http.NewRequest("GET", "http://metadata.google.internal", nil)
 	if err != nil {
 		return ""
 	}
