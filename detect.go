@@ -20,6 +20,7 @@ func Detect() string {
 		detectDigitalOcean,
 		detectGCE,
 		detectOracle,
+		detectIBMCloud,
 		detectOpenStack,
 		detectSoftlayer,
 		detectVultr,
